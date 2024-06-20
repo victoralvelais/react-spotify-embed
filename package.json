@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc"
   },
-  "postinstall": "tsc",
+  "postinstall": "npm run build",
   "keywords": [],
   "author": "",
   "license": "MIT",
