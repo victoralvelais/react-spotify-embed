@@ -17,7 +17,12 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
 
   useEffect(() => {
     const script = spotifyScript()
+    return () => {
+      document.body.removeChild(script);
+    };
+  });
 
+  useEffect(() => {
     const onSpotifyIframeApiReady = (IFrameAPI: any) => {
       const element = document.getElementById('embed-iframe');
       const options = { uri };
@@ -37,10 +42,6 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
     };
 
     (window as any).onSpotifyIframeApiReady = onSpotifyIframeApiReady;
-
-    return () => {
-      document.body.removeChild(script);
-    }
   }, [uri, ref]);
 
   const setupEventListeners = (EmbedController: any) => {
