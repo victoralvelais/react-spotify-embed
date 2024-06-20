@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc"
   },
-  "postinstall": "bun run build",
+  "postinstall": "tsc",
   "keywords": [],
   "author": "",
   "license": "MIT",
