@@ -16,24 +16,22 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
   const trackEndedRef = useRef<boolean>(false);
 
   useEffect(() => {
-    const script = spotifyScript()
+    const script = spotifyScript();
     return () => {
       document.body.removeChild(script);
     };
-  });
+  }, []);
 
   useEffect(() => {
     const onSpotifyIframeApiReady = (IFrameAPI: any) => {
-      const element = document.getElementById('embed-iframe');
+      const element = document.getElementById('spotify-embed-iframe');
       const options = { uri };
 
       const callback = (EmbedController: any) => {
         embedControllerRef.current = EmbedController;
         setupEventListeners(EmbedController);
 
-        if (ref && typeof ref === 'function') {
-          ref(embedControllerRef.current);
-        } else if (ref && typeof ref === 'object') {
+        if (ref && typeof ref === 'object') {
           ref.current = embedControllerRef.current;
         }
       };
@@ -42,7 +40,7 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
     };
 
     (window as any).onSpotifyIframeApiReady = onSpotifyIframeApiReady;
-  }, [uri, ref]);
+  }, []);
 
   const setupEventListeners = (EmbedController: any) => {
     EmbedController.addListener('playback_update', ({ data }: { data: any }) => {
@@ -56,23 +54,27 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
         isPlayingRef.current = false;
         if (onPause) onPause();
       } else if (position === duration) {
-          trackEndedRef.current = true;
-          isPlayingRef.current = false;
-          if (onEnd) onEnd();
+        trackEndedRef.current = true;
+        isPlayingRef.current = false;
+        if (onEnd) onEnd();
       }
     });
   };
 
-  useImperativeHandle(ref, () => ({}));
+  useImperativeHandle(ref, () => ({
+    play: () => embedControllerRef.current?.play(),
+    togglePlay: () => embedControllerRef.current?.togglePlay(),
+    loadUri: (newUri: string) => embedControllerRef.current?.loadUri(newUri),
+  }));
 
-  return <div id="embed-iframe" style={{ width, height }}></div>;
+  return <div ref={embedControllerRef} id="spotify-embed-iframe" style={{ width, height }}></div>;
 });
 
 const spotifyScript = () => {
   const script = document.createElement('script');
   script.src = "https://open.spotify.com/embed/iframe-api/v1";
   script.async = true;
-  return document.body.appendChild(script);
+  return document.head.appendChild(script);
 }
 
 export default SpotifyEmbed;
