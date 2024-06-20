@@ -5,9 +5,9 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc"
+    "build": "tsc",
+    "postinstall": "bun run build"
   },
-  "postinstall": "npm run build",
   "keywords": [],
   "author": "",
   "license": "MIT",
