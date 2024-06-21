@@ -56,10 +56,14 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
   };
 
   useImperativeHandle(ref, () => ({
-    play: () => embedControllerRef.current?.play(),
-    togglePlay: () => embedControllerRef.current?.togglePlay(),
-    loadUri: (newUri: string) => embedControllerRef.current?.loadUri(newUri),
+    play: () =>
+      embedControllerRef.current?.play?.(),
+    togglePlay: () =>
+      embedControllerRef.current?.togglePlay?.(),
+    loadUri: (newUri: string) =>
+      embedControllerRef.current?.loadUri?.(newUri),
   }));
+
 
   return <div ref={embedControllerRef} id="spotify-embed-iframe" style={{ width, height }}></div>;
 });
