@@ -1,6 +1,6 @@
 {
   "name": "react-spotify-embed",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "React component for Spotify Embed with controls",
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
