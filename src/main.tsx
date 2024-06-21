@@ -16,13 +16,6 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
   const trackEndedRef = useRef<boolean>(false);
 
   useEffect(() => {
-    const script = spotifyScript();
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
-  useEffect(() => {
     const onSpotifyIframeApiReady = (IFrameAPI: any) => {
       const element = document.getElementById('spotify-embed-iframe');
       const options = { uri };
@@ -39,6 +32,7 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
       IFrameAPI.createController(element, options, callback);
     };
 
+    spotifyScript();
     (window as any).onSpotifyIframeApiReady = onSpotifyIframeApiReady;
   }, []);
 
@@ -71,10 +65,13 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
 });
 
 const spotifyScript = () => {
-  const script = document.createElement('script');
-  script.src = "https://open.spotify.com/embed/iframe-api/v1";
-  script.async = true;
-  return document.head.appendChild(script);
+  const src = "https://open.spotify.com/embed/iframe-api/v1"
+  if (!document.querySelector(`script[src="${src}"]`)) {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    return document.head.appendChild(script);
+  }
 }
 
 export default SpotifyEmbed;
