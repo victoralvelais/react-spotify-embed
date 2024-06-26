@@ -4,68 +4,103 @@ interface SpotifyEmbedProps {
   uri: string;
   width?: string;
   height?: string;
+  onReady?: (e: any) => void;
   onPlay?: () => void;
   onPause?: () => void;
   onEnd?: () => void;
+  style?: React.CSSProperties;
 }
 
 const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
-  const { uri, width = '100%', height = '380', onPlay, onPause, onEnd } = props;
+  const { uri, onReady, onPlay, onPause, onEnd } = props;
+  const { width = '100%', height = '380', style } = props;
   const embedControllerRef = useRef<any>(null);
   const isPlayingRef = useRef<boolean>(false);
   const trackEndedRef = useRef<boolean>(false);
+  const embedContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const onSpotifyIframeApiReady = (IFrameAPI: any) => {
-      const element = document.getElementById('spotify-embed-iframe');
-      const options = { uri };
+  const onSpotifyIframeApiReady = (IFrameAPI: any) => {
+    (window as any).IFrameAPI = IFrameAPI;
+    const container = embedContainerRef.current;
+    const swapContainer = document.createElement('div');
+    container?.appendChild(swapContainer);
+    const options = { uri };
 
-      const callback = (EmbedController: any) => {
-        embedControllerRef.current = EmbedController;
-        setupEventListeners(EmbedController);
-
-        if (ref && typeof ref === 'object') {
-          ref.current = embedControllerRef.current;
-        }
-      };
-
-      IFrameAPI.createController(element, options, callback);
+    const callback = (EmbedController: any) => {
+      embedControllerRef.current = EmbedController;
+      setupEventListeners(EmbedController);
     };
 
-    spotifyScript();
-    (window as any).onSpotifyIframeApiReady = onSpotifyIframeApiReady;
-  }, []);
-
-  const setupEventListeners = (EmbedController: any) => {
-    EmbedController.addListener('playback_update', ({ data }: { data: any }) => {
-      const { duration, isBuffering, isPaused, position } = data;
-
-      if (!isPaused && !isPlayingRef.current) {
-        isPlayingRef.current = true;
-        trackEndedRef.current = false;
-        if (onPlay) onPlay();
-      } else if (isPaused && isPlayingRef.current && !isBuffering) {
-        isPlayingRef.current = false;
-        if (onPause) onPause();
-      } else if (position === duration) {
-        trackEndedRef.current = true;
-        isPlayingRef.current = false;
-        if (onEnd) onEnd();
-      }
-    });
+    IFrameAPI.createController(swapContainer, options, callback);
   };
 
-  useImperativeHandle(ref, () => ({
-    play: () =>
-      embedControllerRef.current?.play?.(),
-    togglePlay: () =>
-      embedControllerRef.current?.togglePlay?.(),
-    loadUri: (newUri: string) =>
-      embedControllerRef.current?.loadUri?.(newUri),
-  }));
+  const handleReady = () => {
+    if (onReady) onReady(embedControllerRef.current);
+  };
 
+  const handlePlayback = ({ data }: { data: any }) => {
+    const { duration, isBuffering, isPaused, position } = data;
 
-  return <div ref={embedControllerRef} id="spotify-embed-iframe" style={{ width, height }}></div>;
+    if (!isPaused && !isPlayingRef.current) {
+      isPlayingRef.current = true;
+      trackEndedRef.current = false;
+      if (onPlay) onPlay();
+    } else if (isPaused && isPlayingRef.current && !isBuffering) {
+      isPlayingRef.current = false;
+      if (onPause) onPause();
+    } else if (position && position === duration) {
+      // position check needed when user skip resets to 0
+      trackEndedRef.current = true;
+      isPlayingRef.current = false;
+      if (onEnd) onEnd();
+    }
+  };
+
+  const setupEventListeners = (EmbedController: any) => {
+    EmbedController.addListener('ready', handleReady);
+    EmbedController.addListener('playback_update', handlePlayback);
+
+    EmbedController.removeAllListeners = () => {
+      EmbedController.removeListener('ready', handleReady);
+      EmbedController.removeListener('playback_update', handlePlayback);
+    };
+  };
+
+  useEffect(() => {
+    if (!embedContainerRef.current) return;
+    spotifyScript();
+
+    if ((window as any).onSpotifyIframeApiReady && (window as any).IFrameAPI) {
+      if (!document.querySelector('spotify-embed-iframe > iframe')) {
+        onSpotifyIframeApiReady((window as any).IFrameAPI);
+      }
+    } else {
+      (window as any).onSpotifyIframeApiReady = onSpotifyIframeApiReady;
+    }
+
+    return () => {
+      embedControllerRef.current?.removeAllListeners?.();
+      embedControllerRef.current?.destroy?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Reset event listeners when props change
+    if (embedControllerRef.current) {
+      embedControllerRef.current?.removeAllListeners?.();
+      setupEventListeners(embedControllerRef.current);
+    }
+  }, [onReady, onPlay, onPause, onEnd]);
+
+  useImperativeHandle(ref, () => embedControllerRef.current);
+
+  return (
+      <div
+        style={{ width, height, ...style }}
+        ref={embedContainerRef}
+        id={"spotify-embed-iframe"}
+      />
+  )
 });
 
 const spotifyScript = () => {
