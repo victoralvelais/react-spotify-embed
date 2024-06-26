@@ -11,6 +11,16 @@ interface SpotifyEmbedProps {
   style?: React.CSSProperties;
 }
 
+const spotify = () => {
+  const src = "https://open.spotify.com/embed/iframe-api/v1";
+  if (!document.querySelector(`script[src="${src}"]`)) {
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    return document.head.appendChild(script);
+  }
+};
+
 const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
   const { uri, onReady, onPlay, onPause, onEnd } = props;
   const { width = '100%', height = '380', style } = props;
@@ -19,16 +29,16 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
   const trackEndedRef = useRef<boolean>(false);
   const embedContainerRef = useRef<HTMLDivElement>(null);
 
-  const onSpotifyIframeApiReady = (IFrameAPI: any) => {
+  const spotifyReady = (IFrameAPI: any) => {
     (window as any).IFrameAPI = IFrameAPI;
     const container = embedContainerRef.current;
-    const swapContainer = document.createElement('div');
+    const swapContainer = document.createElement("div");
     container?.appendChild(swapContainer);
     const options = { uri };
 
     const callback = (EmbedController: any) => {
       embedControllerRef.current = EmbedController;
-      setupEventListeners(EmbedController);
+      setListeners(EmbedController);
     };
 
     IFrameAPI.createController(swapContainer, options, callback);
@@ -56,7 +66,7 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
     }
   };
 
-  const setupEventListeners = (EmbedController: any) => {
+  const setListeners = (EmbedController: any) => {
     EmbedController.addListener('ready', handleReady);
     EmbedController.addListener('playback_update', handlePlayback);
 
@@ -68,14 +78,16 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
 
   useEffect(() => {
     if (!embedContainerRef.current) return;
-    spotifyScript();
+    const apiReady = (window as any).onSpotifyIframeApiReady;
+    const api = (window as any).IFrameAPI
 
-    if ((window as any).onSpotifyIframeApiReady && (window as any).IFrameAPI) {
+    if (apiReady && api) {
       if (!document.querySelector('spotify-embed-iframe > iframe')) {
-        onSpotifyIframeApiReady((window as any).IFrameAPI);
+        spotifyReady(api);
       }
     } else {
-      (window as any).onSpotifyIframeApiReady = onSpotifyIframeApiReady;
+      spotify();
+      (window as any).onSpotifyIframeApiReady = spotifyReady;
     }
 
     return () => {
@@ -88,7 +100,7 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
     // Reset event listeners when props change
     if (embedControllerRef.current) {
       embedControllerRef.current?.removeAllListeners?.();
-      setupEventListeners(embedControllerRef.current);
+      setListeners(embedControllerRef.current);
     }
   }, [onReady, onPlay, onPause, onEnd]);
 
@@ -102,15 +114,5 @@ const SpotifyEmbed = forwardRef((props: SpotifyEmbedProps, ref) => {
       />
   )
 });
-
-const spotifyScript = () => {
-  const src = "https://open.spotify.com/embed/iframe-api/v1"
-  if (!document.querySelector(`script[src="${src}"]`)) {
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = true;
-    return document.head.appendChild(script);
-  }
-}
 
 export default SpotifyEmbed;
